@@ -27,7 +27,7 @@ Similarly you can hold all 4 back buttons and press Y to switch (teehee) over to
 You will need to flash OpenPuck.ino onto a compatible microcontroller. See [build instructions document](./docs/BUILD_AND_DEPLOY.md) for more details.
 
 # Configuration
-A webusb based configuration UI is available at <link>. It allows Switching the mode manually and changing the back button mapping for Xbox mode among other things. This will likely only work in Chrome and Edge and needs the pro micro to be connected via USB to the same computer for it to function.
+A webusb based configuration UI is available [here](https://safijari.github.io/openpuck). It allows Switching the mode manually and changing the back button mapping for Xbox mode among other things. This will likely only work in Chrome and Edge and needs the pro micro to be connected via USB to the same computer for it to function.
 
 # Contributions
 I have tested this software fairly extensively but I have limited resources. I only have one controller so I actually don't know if multiple controllers even work correctly (in fact I'm almost sure they will not). Please submit issues with any issues you find. PRs also welcome of course.
