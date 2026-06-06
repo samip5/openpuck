@@ -18,7 +18,7 @@ jobs:
       - name: Install Adafruit nRF52 core
         run: |
           arduino-cli config init --overwrite
-          arduino-cli config set board_manager.additional_urls https://www.adafruit.com/package_adafruit_index.json
+          arduino-cli config set board_manager.additional_urls https://adafruit.github.io/arduino-board-index/package_adafruit_index.json
           arduino-cli core update-index
           arduino-cli core install adafruit:nrf52
 

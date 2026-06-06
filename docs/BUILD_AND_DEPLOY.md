@@ -47,7 +47,7 @@ If your CLI config does not already include the Adafruit package index, add it f
 ```yaml
 board_manager:
   additional_urls:
-    - https://www.adafruit.com/package_adafruit_index.json
+    - https://adafruit.github.io/arduino-board-index/package_adafruit_index.json
 ```
 
 Then rerun `arduino-cli core update-index`.
