@@ -999,10 +999,16 @@ static uint8_t rfConnTx(uint8_t ch, uint8_t s1, const uint8_t* payload, uint8_t 
             const uint8_t* rep=&rfrx[idx+2];            // report 0x45: [0x45][seq][buttons u32]...
             bool fresh=(rep[1]!=g_lastSeq); if(fresh){ g_stNew++; g_lastSeq=rep[1]; }  // genuine new report vs stale poll-repeat
             uint32_t bb=btnsOf(rep);
-            // USB remote wakeup: if the host is sleeping and the user presses any button, signal it to wake up.
-            // The host must have enabled remote wakeup (SET_FEATURE DEVICE_REMOTE_WAKEUP) for this to succeed;
-            // tud_remote_wakeup() is a no-op when not suspended, so it is always safe to call here.
-            if(fresh && bb && USBDevice.suspended()) USBDevice.remoteWakeup();
+            // USB remote wakeup on Steam button short press (down + up within 1 s).
+            // A long press likely means the user is powering off the controller, so we ignore it.
+            { static bool steamWasDown=false; static unsigned long steamDownMs=0;
+              if(fresh){
+                bool steamNow=(bb & TB_STEAM)!=0;
+                if(steamNow && !steamWasDown) steamDownMs=millis();                                                            // rising edge: record press time
+                if(!steamNow && steamWasDown && millis()-steamDownMs<1000u && USBDevice.suspended()) USBDevice.remoteWakeup(); // falling edge within 1 s -> short press -> wake
+                steamWasDown=steamNow;
+              }
+            }
             // cache the latest decoded frame for the Switch streamer + Xbox/Steam paths
             g_swBtns=bb; g_swLX=(int16_t)s16off(rep,8); g_swLY=(int16_t)s16off(rep,10);
             g_swRX=(int16_t)s16off(rep,12); g_swRY=(int16_t)s16off(rep,14);
@@ -1417,6 +1423,7 @@ void setup() {
   USBDevice.attach();   // re-connect with the final descriptor (host re-reads it fresh -> deterministic enumeration)
   Serial.begin(115200);
   for (int i=0; i<300 && !USBDevice.mounted(); i++) delay(10);   // wait up to 3s for USB mount, but NEVER hang:
+  if (USBDevice.suspended()) USBDevice.remoteWakeup();             // wake host if bus was sleeping when we (re-)attached (e.g. after a mode change)
   loadBonds();                                                   // if a mode fails to enumerate, still run loop() so RF + the back-paddle mode chord keep working (can always switch back)
   Serial.printf("# copycat up: unit=%s board=%s, mode=%s\n", g_unit, g_board, g_usbMode==1?"XBOX(controller+mouse)":g_usbMode==2?"SWITCH(pro controller)":"STEAM(puck; auto-lizard when Steam closed)");
   // Hardware watchdog: if loop() ever stops feeding it (a wedged radio busy-wait, a HardFault spin, a blocked
@@ -1460,6 +1467,11 @@ void loop() {
     if (millis()-g_lastDisc >= (connNow ? 200u : 0u)) { g_lastDisc=millis(); g_rfCh=2; for (int s=0;s<NSLOT;s++) rfHostFrameOnce(s); }
   }
   if (g_connOn && millis()-g_connCooldown > 2500) { rfConnStep(); }            // connected-mode: poll controller, read input
+  { static bool wasRfConn=false;                                               // remote wakeup on new RF controller connection
+    bool nowRfConn=(g_connSlot>=0 && millis()-g_connReplyMs<300);
+    if(nowRfConn && !wasRfConn && USBDevice.suspended()) USBDevice.remoteWakeup();
+    wasRfConn=nowRfConn;
+  }
   { static bool wasHapticLinkUp=false;
     bool up=hapticLinkUp();
     if(up && !wasHapticLinkUp){ g_hapticBlockUntil = millis() + HAPTIC_RECONNECT_BLOCK_MS; g_hapticStop=4; }   // reconnect: drop Steam's stale startup haptics AND clear any haptic that latched on the controller before/across the switch (the "whine until Steam button" on entering Steam mode)
