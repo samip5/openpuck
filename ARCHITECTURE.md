@@ -85,6 +85,7 @@ just points at the `OpenPuck` directory). Modules are layered low → high:
 | `rf_diag.{h,cpp}` | RF reverse-engineering / calibration tooling: raw capture, CRC-validating config sweeps, frame replay, address listen, scan-then-respond, live-session sniffer. Not used in normal operation. |
 | `webusb_config.{h,cpp}` | The WebUSB binary config channel for the browser panel. |
 | `serial_console.{h,cpp}` | The CDC single-letter debug command line. |
+| `wake_hid.{h,cpp}` | A boot-keyboard HID interface added to the clean controller modes so the host honors USB remote-wakeup (see "Wake from sleep"). |
 
 ## The controller abstraction
 
@@ -202,6 +203,25 @@ Because the discovery address is shared, two things prevent one puck from distur
    means even a neighbor's `0xE1` discovery beacon picked up on the shared rendezvous can't be mistaken for a
    reconnect. (Before these two fixes, plugging a second puck into another computer would wake a sleeping host
    running the first puck.)
+
+## Wake from sleep
+
+The puck can wake a sleeping host via `USBDevice.remoteWakeup()` — driven from `rf_link.cpp` on a Steam-button
+short-press or a fresh RF reconnect (guarded by `USBDevice.suspended()`). Every mode advertises the
+remote-wakeup capability in its config descriptor, so the device is always *armed*. The catch is that a host
+only *honors* a resume signal from an allow-listed input device class (HID keyboard/mouse) — a bare
+gamepad/vendor/composite presentation gets armed but ignored (notably Windows under Modern Standby). That's
+why Xbox mode (which exposes a boot mouse) woke Windows while the gamepad/puck modes didn't.
+
+The fix: `wake_hid.cpp` registers a do-nothing **boot keyboard** interface so each mode is classified as a
+wake-capable input device. It's added in `setup()` for every **clean** mode. It is **not** added in puck mode,
+which is already at the nRF52840's 7-data-IN-endpoint limit (CDC + 4 puck HID + WebUSB) — adding it there would
+require freeing an endpoint (dropping CDC or WebUSB, or a bond slot). Puck mode already wakes on Linux/Steam
+Deck; making it wake Windows is the one case this doesn't cover without that tradeoff.
+
+Note hosts differ in what they honor: Windows keys on the input device class (this fix targets it); Linux/Steam
+Deck gates wake per-device in `/sys/.../power/wakeup` regardless of class, so a mode that still won't wake the
+Deck may just need that sysfs flag enabled host-side.
 
 ## RF reverse-engineering tooling
 

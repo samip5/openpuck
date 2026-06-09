@@ -29,6 +29,7 @@ using namespace Adafruit_LittleFS_Namespace;
 #include "rf_diag.h"
 #include "webusb_config.h"
 #include "serial_console.h"
+#include "wake_hid.h"
 
 #if CFG_TUD_HID < 4
 #error "build with -DCFG_TUD_HID=4 (extra_flags): up to 4 HID interfaces per mode"
@@ -64,6 +65,10 @@ void setup() {
   else { snprintf(g_usbSerial, sizeof g_usbSerial, "%s%c", g_unit, MODE_SUFFIX[g_usbMode-1]); USBDevice.setSerialDescriptor(g_usbSerial); }
 
   g_active->begin();   // register this mode's USB interface(s) + set VID/PID/strings
+
+  // Boot-keyboard wake interface so the host honors USBDevice.remoteWakeup() in this mode (see wake_hid.h).
+  // Skipped in puck mode: its CDC + 4 HID + WebUSB composite already uses all 7 data IN endpoints.
+  if (!puckMode) wakeHidBegin();
 
   // WebUSB config panel -- every mode. Puck: historical CDC+HID+vendor stack (Steam + Chrome can share it).
   // Clean modes: bare gamepad + WebUSB (begin() sets bcdUSB 0x0210 + BOS).
