@@ -34,9 +34,16 @@
 #define MODE_SW_HORI 2   // HORIPAD (Switch console whitelist)
 #define MODE_LIZARD  3   // Puck HID; always keyboard+mouse (ignores Steam heartbeat)
 #define MODE_SW_PRO  4   // Nintendo Switch Pro Controller (057E:2009) + gyro
-#define MODE_PS5     5   // Sony DualSense (054C:0CE6) + gyro + split trackpad
-#define MODE_HIDGYRO 6   // DS4-layout generic HID gamepad + gyro (Fortnite-friendly)
-#define MODE_MAX     6
+#define MODE_PS5     5   // Sony DualSense (054C:0CE6) + gyro + split trackpad (+ wake mouse + WebUSB panel)
+#define MODE_HIDGYRO 6   // DS4-layout generic HID gamepad + gyro (+ wake mouse + WebUSB panel)
+#define MODE_PS5_GAME 7  // DualSense, CLEAN single-HID (no wake/WebUSB) so PC games classify it as PlayStation (Fortnite)
+#define MODE_DS4_GAME 8  // DS4, CLEAN single-HID (no wake/WebUSB) for game PlayStation classification
+#define MODE_MAX     8
+
+// The two "game" personalities drop the wake-mouse + WebUSB interfaces so the device is a genuine single-HID PS
+// controller (some PC games -- e.g. Fortnite/UE GameInput -- refuse PS classification when extra interfaces are
+// present). Cost: no config panel / host-wake while in these modes; chord back to Steam (back4 + A) for the panel.
+static inline bool modeIsCleanPS(uint8_t m){ return m==MODE_PS5_GAME || m==MODE_DS4_GAME; }
 
 static inline bool modeIsPuck(uint8_t m){ return m==MODE_STEAM || m==MODE_LIZARD; }
 static inline bool modeValid(uint8_t m){ return m<=MODE_MAX; }
@@ -64,6 +71,12 @@ extern int     g_mDiv, g_mFric; // xbox/lizard mouse sensitivity divisor / frict
 extern uint8_t g_abSwap;        // 1 = swap A/B and X/Y (Nintendo face-button layout)
 extern uint8_t g_back[4];       // back paddles L4,R4,L5,R5 -> button codes (0..15 standard, 16=PS Touch Click, 17=PS5 Mute)
 extern uint8_t g_qamMap;        // QAM (3 dots) physical button -> same code space (0 = default/unmapped)
+extern uint8_t g_rumbleScale;   // rumble strength, percent of decoded amplitude (100 = 1x, 200 = 2x default), all modes
+// Switch Pro motion settings. Persisted in their OWN flash file (mode_switch_pro.cpp), NOT in Cfg -- so changing
+// them never resets the rest of the config. Set from the WebUSB panel.
+extern uint8_t g_swProRate;     // Switch Pro report cadence: 0 = 66Hz (15ms, compat), 1 = 120Hz (8ms, DEFAULT), 2 = full (~250Hz)
+extern uint8_t g_swGyroScale10; // Switch Pro gyro sensitivity x10 (10 = 1.0x default; 5/15/20/25/30 = 0.5..3.0x)
+void swProSaveCfg();            // persist g_swProRate + g_swGyroScale10 to their flash file
 
 #define POLL_US_DEFAULT 4000u   // 250 Hz -- matches SC2 input report rate (1000000/250 = 4000 us)
 #define USB_STREAM_MS   4u      // host-side HID stream cadence for translated modes (~250 Hz)

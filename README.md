@@ -21,19 +21,19 @@ There are two fundamental problems with the controller:
 
 [![OpenPuck Intro](https://img.youtube.com/vi/gSaqO9oqq9s/0.jpg)](https://www.youtube.com/watch?v=gSaqO9oqq9s)
 
-OpenPuck uses a [Pro Micro NRF52840](https://www.amazon.com/dp/B0GSZ7FD6T) ($8 on Amazon, possibly cheaper elsewhere) which uses a radio similar to the one being used by the controller and the puck. Once the arduino sketch is uploaded it emulates the puck over USB to Steam by default and allows pairing the controller normally (almost, the lizard mode for when Steam is off might not be 1:1).
+OpenPuck uses a [Pro Micro NRF52840](https://www.amazon.com/dp/B0GSZ7FD6T) ($8 on Amazon, possibly cheaper elsewhere) which uses a radio similar to the one being used by the controller and the puck. Once the arduino sketch is uploaded it emulates the puck over USB to Steam by default and allows pairing the controller normally (almost, the lizard mode for when Steam is off might not be 1:1). Latency [has been measured to be within 1ms of the official puck](https://www.reddit.com/r/SteamController/comments/1u754ze/complete_latency_testing_of_openpuck_project/).
 
 At any point you can hold all 4 back buttons and press X to switch over to ***Xbox mode** which maps all canonical inputs to their expected counterparts (plus L4 -> LB, L5 -> L3, etc which are configurable). In this mode the right trackpad acts as a mouse but at present this only works in Android and SteamOS.
 
-Similarly you can hold all 4 back buttons and press Y to switch (teehee) over to a **Switch mode**. This emulates a Pokken controller and is very limited (no gyro, no haptics, etc) but it's functional enough for my kids to play Animal Crossing :D. There's other modes as well:
+Similarly you can hold all 4 back buttons and press Y to switch (teehee) over to a **Switch mode**. This emulates a pro controller full with gyro and haptics. There's other modes as well:
 
 | Button combo (configurable) | Mode | Comment |
 |---|---|---|
 | back-4 + A | Steam | Steam Controller Mode |
 | back-4 + B | Lizard | Lizard mode, even if Steam is open |
 | back-4 + X | Xbox | Xbox 360 Controller |
-| back-4 + Y | HORI | Switch Controller (works on the consoles) |
-| WebUSB panel → mode 4 | Switch Pro + Gyro | PC only |
+| back-4 + Y | Swith Pro | Switch Controller + Gyro + Haptics |
+| WebUSB panel → mode 4 | Hori Pad | Switch mode with no gyro or haptics |
 | WebUSB panel → mode 5 | DualSense + Gyro + Trackpad | PC only |
 | WebUSB panel → mode 6 | DS4/HIDGYRO + Gyro + Trackpad | PC only |
 
@@ -53,10 +53,8 @@ A webusb based configuration UI is available [here](https://safijari.github.io/o
 # Future work
 - Find a way to make Xinput mode and mouse work together on all platforms
 - Ensure multiple controllers can function correctly (if I can ever buy one)
-- Tune haptics in Xinput mode
 - Design the charging portion (and make it short proof)
 - Design a 3D printable housing
-- Allow bluetooth controllers to pair with and connect to the puck
 
 # Contributions
 The firmware is split into small, single-responsibility modules under `OpenPuck/` (one file per emulated controller, plus the RF, config, and host-interface layers). Start with [ARCHITECTURE.md](./ARCHITECTURE.md) for the map of how it all fits together and how to add a new USB personality.
@@ -67,3 +65,5 @@ I have tested this software fairly extensively but I have limited resources. I o
 - Valve for putting out the amazing controller
 - Whoever wrote the drivers for SDL / Linux
 - Alan for not scalping and selling me this controller for $120
+- https://github.com/knflrpn/2wiCC for the Switch Pro controller mode help
+- Massive thanks to [u/Careful_Tune4744](https://www.reddit.com/user/Careful_Tune4744/) for latency testing as well as testing and giving feedback on the Switch Pro mode

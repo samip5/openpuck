@@ -97,13 +97,13 @@ static void ps5Build(uint8_t out[63]){
 
 void Ps5Controller::begin(){
   USBDevice.setID(0x054C, 0x0CE6);
-  USBDevice.setDeviceVersion(0x0101);   // bumped from 0x0100 for the added wake-mouse interface (Windows caches config by VID:PID:bcdDevice)
+  USBDevice.setDeviceVersion(0x0104);   // bumped: clean-PS is now a separate mode (PS5_GAME); normal PS5 keeps wake+WebUSB. Host re-reads config by VID:PID:serial (per-mode suffix) -- bump invalidates any cached 0x0103.
   USBDevice.setManufacturerDescriptor("Sony Interactive Entertainment");
   USBDevice.setProductDescriptor("DualSense Wireless Controller");
   g_ps5.enableOutEndpoint(true);
   g_ps5.setReportCallback(ps5Get, ps5Set);
   g_ps5.setReportDescriptor(PS5_HID_DESC, sizeof PS5_HID_DESC);
-  g_ps5.setPollInterval(4);
+  g_ps5.setPollInterval(1);   // 1ms bInterval so the RF rate is the only latency limit (matches Xbox)
   g_ps5.begin();
 }
 void Ps5Controller::task(){

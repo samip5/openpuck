@@ -59,6 +59,9 @@
         <button data-mode="4" class="modebtn">Switch Pro + gyro</button>
         <button data-mode="5" class="modebtn">PS5 DualSense</button>
         <button data-mode="6" class="modebtn">HID gyro (DS4)</button>
+        <!-- modes 7/8 (PS5/DS4 "game/clean") hidden from the panel for now; still reachable via serial console -->
+        <!-- <button data-mode="7" class="modebtn">PS5 (game/clean)</button> -->
+        <!-- <button data-mode="8" class="modebtn">DS4 (game/clean)</button> -->
       </div>
       <p class="note">Switching reboots the copycat and re-enumerates USB (~2 s). WebUSB works in every mode, including Steam/Lizard with Steam running (Chrome claims the vendor interface; Steam keeps the HID slots). Switch HORIPAD + WebUSB is PC-only.</p>
       <div class="row"><label>Persist last mode</label>
@@ -90,6 +93,8 @@
         <div class="stat logonly"><div class="k">Poll period act/want</div><div class="v" id="stPollPer">—</div></div>
         <div class="stat"><div class="k">Build (git)</div><div class="v" id="stBuild">—</div></div>
       </div>
+      <p class="note" style="margin-top:8px"><strong>IMU (raw):</strong> <span id="stImu" style="font-family:ui-monospace,Menlo,monospace">—</span><br>
+        Raw SC2 accel (before scaling). This controller is a ±2 g sensor (~16384 = 1 g); the Switch report divides it by 4 to present the genuine ±8 g (4096 = 1 g) scale so the console's gravity-correction engages and the gyro stops drifting.</p>
       <p class="note logonly">Polls/s ≈ 250 expected; it's capped by Loop period (≈4000 µs needed). "Slowest stage" is the loop section eating the most time per iteration.</p>
       <div class="row" style="margin:10px 0 0"><button id="hapClear">Clear stuck buzz</button>
         <span class="note" style="flex:1">If the controller's haptics get stuck/buzzing, this re-inits them (same as pressing Steam).</span>
@@ -108,6 +113,20 @@
       <div class="row"><label>Sensitivity</label><input type="range" id="mDiv" min="4" max="200" step="1"><span class="val" id="mDivV"></span></div>
       <div class="row"><label>Glide / friction</label><input type="range" id="mFric" min="0" max="99" step="1"><span class="val" id="mFricV"></span></div>
       <p class="note">Right-pad cursor in Steam-mode lizard (Steam closed) and in Xbox mode. Sensitivity is a divisor — lower = faster pointer. Glide = how long the cursor coasts after a flick.</p>
+    </div>
+
+    <div class="card">
+      <h2>Rumble</h2>
+      <div class="row"><label>Strength</label><input type="range" id="rumble" min="0" max="255" step="5"><span class="val" id="rumbleV"></span></div>
+      <p class="note">Scales rumble amplitude across all modes (100% = native, 200% = double, 0% = off).</p>
+    </div>
+
+    <div class="card">
+      <h2>Switch Pro motion</h2>
+      <div class="row"><label>Report rate</label><select id="swRate"></select></div>
+      <p class="note" style="margin:0 0 6px">120 Hz (default) is low-latency and drift-free. 66 Hz is a genuine-cadence compatibility fallback. Full rate (~250 Hz) is lowest-latency but non-genuine — use only if your console tolerates it.</p>
+      <div class="row"><label>Gyro scale</label><select id="swGyro"></select></div>
+      <p class="note">Gyro sensitivity multiplier for Switch Pro mode (1.0× = unchanged).</p>
     </div>
 
 
@@ -142,7 +161,7 @@
 </div>
 
 <script>
-const MODE_NAMES = ["Steam (puck)","Xbox 360","Switch (HORIPAD)","Lizard (always)","Switch Pro + gyro","PS5 DualSense","HID gyro (DS4)"];
+const MODE_NAMES = ["Steam (puck)","Xbox 360","Switch (HORIPAD)","Lizard (always)","Switch Pro + gyro","PS5 DualSense","HID gyro (DS4)","PS5 (game/clean)","DS4 (game/clean)"];
 const CHORD_FIELD = [17, 18, 19];
 const BTN_CODES = [[0,"— none —"],[1,"A"],[2,"B"],[3,"X"],[4,"Y"],[5,"LB"],[6,"RB"],[7,"L3"],[8,"R3"],[9,"Back"],[10,"Quick Access Menu"],[11,"Guide"],[12,"D-pad Up"],[13,"D-pad Down"],[14,"D-pad Left"],[15,"D-pad Right"],[16,"PS Touch Click"],[17,"PS5 Mute"]];
 let dev=null, epIn=0, epOut=0, ifNum=0, polling=false, capturing=false;
@@ -158,7 +177,18 @@ for(const sel of document.querySelectorAll("select.back")){
   for(const [c,n] of BTN_CODES){ if(c===0) continue; const o=document.createElement("option"); o.value=c; o.textContent=n; sel.appendChild(o); }
 }
 for(const sel of document.querySelectorAll("select.chord")){
-  MODE_NAMES.forEach((n,i)=>{ const o=document.createElement("option"); o.value=i; o.textContent=n; sel.appendChild(o); });
+  MODE_NAMES.forEach((n,i)=>{ if(i===7||i===8) return;   // hide PS5/DS4 "game/clean" modes from the panel for now
+    const o=document.createElement("option"); o.value=i; o.textContent=n; sel.appendChild(o); });
+}
+// Switch Pro report-rate options (0=66Hz, 1=120Hz default, 2=full ~250Hz)
+{ const sel=document.getElementById("swRate");
+  for(const [lbl,v] of [["120 Hz (default)",1],["66 Hz (compatibility)",0],["Full rate (~250 Hz)",2]]){
+    const o=document.createElement("option"); o.value=v; o.textContent=lbl; sel.appendChild(o); }
+}
+// Switch Pro gyro-scale options (value = scale x10, so it fits in one byte)
+{ const sel=document.getElementById("swGyro");
+  for(const [lbl,v] of [["0.5×",5],["1.0×",10],["1.5×",15],["2.0×",20],["2.5×",25],["3.0×",30]]){
+    const o=document.createElement("option"); o.value=v; o.textContent=lbl; sel.appendChild(o); }
 }
 
 async function connect(){
@@ -219,7 +249,7 @@ function applyBlob(p){
   const mode=p[1], mDiv=p[2], mFric=p[3], qamMap=p[4], abSwap=p[5];   // p[4] = QAM remap code (0 = default)
   const back=[p[6],p[7],p[8],p[9]], slot=p[10], up=p[11], f1=(p[12]|(p[13]<<8));
   const newps=(p.length>16?(p[15]|(p[16]<<8)):0), persistMode=(p.length>22?p[22]:0);
-  const chord=(p.length>25)?[p[23],p[24],p[25]]:[3,1,2];   // v2 blob: chordBtn after qos/persist
+  const chord=(p.length>25)?[p[23],p[24],p[25]]:[3,1,4];   // v2 blob: chordBtn after qos/persist (Y defaults to Switch Pro=4)
   const polls=(p.length>27?(p[26]|(p[27]<<8)):0);          // poll TX rate
   const loopUs=(p.length>29?(p[28]|(p[29]<<8)):0);         // loop diag
   const worstIdx=(p.length>30?p[30]:0), worstUs=(p.length>32?(p[31]|(p[32]<<8)):0);
@@ -233,6 +263,9 @@ function applyBlob(p){
   $("#mouseCard").style.opacity = (mode===1||mode===3)?1:0.5;
   // status
   const battery=(p.length>36?p[36]:0);                    // controller battery % (report 0x43); 0 = unknown
+  const rumbleScale=(p.length>51?p[51]:200);              // rumble strength % (protocol v5+; older blob -> default)
+  const swProRate=(p.length>52?p[52]:1);                  // Switch Pro report rate 0/1/2 (protocol v6+; default 120Hz)
+  const swGyro10=(p.length>53?p[53]:10);                  // Switch Pro gyro scale x10 (protocol v6+)
   const rssi=(p.length>37?p[37]:0);                       // RAW signal strength |dBm| (0 = no sample)
   $("#stLink").innerHTML = up? '<span class="pill up">up</span>' : '<span class="pill dn">down</span>';
   $("#stBatt").textContent = (up && battery)? battery+"%" : "—";
@@ -252,14 +285,22 @@ function applyBlob(p){
     ? (gitHash + (gitDirty ? ' <span class="pill dn">dirty</span>' : ' <span class="pill up">clean</span>'))
     : "—";
   // sliders (only if not being dragged)
-  setSlider("mDiv",mDiv); setSlider("mFric",mFric);
+  setSlider("mDiv",mDiv); setSlider("mFric",mFric); setSlider("rumble",rumbleScale);
   $("#abSwap").textContent = abSwap? "on":"off"; $("#abSwap").classList.toggle("active",!!abSwap);
   $("#persistMode").textContent = persistMode? "on":"off"; $("#persistMode").classList.toggle("active",!!persistMode);
   for(const sel of document.querySelectorAll("select.back")){ if(document.activeElement!==sel) sel.value=back[+sel.dataset.i]; }
   { const sel=$("#qamMap"); if(document.activeElement!==sel) sel.value=qamMap; }
+  // raw accelerometer diagnostic (protocol v7): 3x s16 LE at p[54..59]
+  if(p.length>=60){ const s16=(o)=>{ let v=p[o]|(p[o+1]<<8); return v>32767?v-65536:v; };
+    const ax=s16(54),ay=s16(56),az=s16(58);
+    const amag=Math.round(Math.sqrt(ax*ax+ay*ay+az*az));
+    $("#stImu").textContent = `a=(${ax}, ${ay}, ${az})  |a|=${amag}`;
+  }
+  { const sel=$("#swRate"); if(document.activeElement!==sel) sel.value=swProRate; }
+  { const sel=$("#swGyro"); if(document.activeElement!==sel) sel.value=swGyro10; }
   for(const sel of document.querySelectorAll("select.chord")){ if(document.activeElement!==sel) sel.value=chord[+sel.dataset.i]; }
 }
-function fmtSlider(id,v){ return ""+v; }
+function fmtSlider(id,v){ return id==="rumble" ? v+"%" : ""+v; }
 function setSlider(id,v){ const el=$("#"+id); if(document.activeElement!==el){ el.value=v; } $("#"+id+"V").textContent=fmtSlider(id,el.value); }
 
 let inflight=false;
@@ -362,8 +403,8 @@ $("#factoryErase").onclick=async()=>{
 };
 $("#abSwap").onclick=()=>{ const on=$("#abSwap").classList.contains("active"); setField(4, on?0:1); };
 $("#persistMode").onclick=()=>{ const on=$("#persistMode").classList.contains("active"); setField(16, on?0:1); };
-for(const id of ["mDiv","mFric"]){
-  const field={mDiv:1,mFric:2}[id];
+for(const id of ["mDiv","mFric","rumble"]){
+  const field={mDiv:1,mFric:2,rumble:22}[id];
   $("#"+id).addEventListener("input", ()=>{ $("#"+id+"V").textContent=fmtSlider(id,$("#"+id).value); });
   $("#"+id).addEventListener("change", ()=>setField(field, +$("#"+id).value));
 }
@@ -371,11 +412,16 @@ for(const sel of document.querySelectorAll("select.back")){
   sel.addEventListener("change", ()=>setField(5 + +sel.dataset.i, +sel.value));
 }
 $("#qamMap").addEventListener("change", ()=>setField(21, +$("#qamMap").value));
+$("#swRate").addEventListener("change", ()=>setField(23, +$("#swRate").value));
+$("#swGyro").addEventListener("change", ()=>setField(24, +$("#swGyro").value));
 for(const sel of document.querySelectorAll("select.chord")){
   sel.addEventListener("change", ()=>setField(CHORD_FIELD[+sel.dataset.i], +sel.value));
 }
 for(const b of document.querySelectorAll(".modebtn")){
-  b.onclick=()=>{ if(confirm("Switch to "+MODE_NAMES[+b.dataset.mode]+"? The copycat will reboot.")){ send([0x03, +b.dataset.mode]); log("mode switch requested — device will reboot"); } };
+  b.onclick=()=>{ const m=+b.dataset.mode;
+    const clean=(m===7||m===8);
+    const msg="Switch to "+MODE_NAMES[m]+"? The copycat will reboot."+(clean?"\n\nNOTE: the game/clean PlayStation modes drop WebUSB + host-wake, so THIS PANEL WILL DISCONNECT and can't reach the device while it's in this mode. To get back, chord on the controller: hold back-paddle 4 + A to return to Steam mode.":"");
+    if(confirm(msg)){ send([0x03, m]); log("mode switch requested — device will reboot"); } };
 }
 if(!("usb" in navigator)) $("#connectBtn").outerHTML='<b style="color:var(--bad)">WebUSB not supported — use Chrome or Edge.</b>';
 </script>
