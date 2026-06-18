@@ -52,7 +52,7 @@ and Steam + L4 ls Ctrl + Alt + Delete.
 You will need to flash OpenPuck.ino onto a compatible microcontroller. See [build instructions document](./docs/BUILD_AND_DEPLOY.md) for more details.
 
 # Configuration
-A webusb based configuration UI is available [here](https://safijari.github.io/openpuck/). It allows Switching the mode manually and changing the back button mapping for other modes among other things. This will likely only work in Chrome and Edge and needs the pro micro to be connected via USB to the same computer for it to function.
+A webusb based configuration UI is available [here](https://safijari.github.io/openpuck/). It allows Switching the mode manually and changing the back button mapping for other modes among other things. This will likely only work in Chrome and Edge and needs the pro micro to be connected via USB to the same computer for it to function. Note that it might not work in all modes on all machines but should always work in the Steam Controller mode (which you can revert to with back-4 + A).
 
 # Future work
 - Find a way to make Xinput mode and mouse work together on all platforms
