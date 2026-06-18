@@ -2,7 +2,7 @@
 Opensource firmware for NRF52840 Pro Micro that copycats the Steam Controller 2 Puck and adds an Xbox and Switch mode.
 
 > [!WARNING]
-> Every part of this project _HEAVILY_ used LLMs. Everything from discovery of the protocol to writing the arduino sketch and running various automated benchmarks invovled Claude and Codex. This readme is the only organic, single origin, ethically sourced and humanely slaughtered assemblage of words in this project. I have done my best to review the code and I invite anyone concerned about the stability or security of this project to do the same.
+> Every part of this project _HEAVILY_ used LLMs. Everything from discovery of the protocol to writing the arduino sketch and running various automated benchmarks invovled Claude and Codex. This readme is the only organic, single origin, ethically sourced and humanely slaughtered assemblage of words in this project. I have done my best to review the code and I invite anyone concerned about the stability or security of this project to do the same.*
 
 # The Steam Controller 2
 Released in 2026, the Steam Controller 2 represents the peak (IMO) of controller design. Trackpads, gyro, 4 back buttons, all with the flexibility of Steam Input brings the amazing flexiblity of the Steam Deck's controls to gaming PCs in general.
@@ -67,3 +67,8 @@ I have tested this software fairly extensively but I have limited resources. I o
 - Alan for not scalping and selling me this controller for $120
 - https://github.com/knflrpn/2wiCC for the Switch Pro controller mode help
 - Massive thanks to [u/Careful_Tune4744](https://www.reddit.com/user/Careful_Tune4744/) for latency testing as well as testing and giving feedback on the Switch Pro mode
+
+# * Another note on LLM use
+I want nothing more than for there to be a fully human coded alternative to OpenPuck that's on par with or better in every way. I would love to stop working on OpenPuck.
+
+If someone builds an alternative that matches this criteria I would happily change the name of this project and archive this repo.
