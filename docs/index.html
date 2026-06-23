@@ -467,11 +467,12 @@ function applyBlob(p){
     : "—";
   setSlider("mDiv",mDiv); setSlider("mFric",mFric); setSlider("rumble",rumbleScale);
   $("#persistMode").textContent = persistMode? "on":"off"; $("#persistMode").classList.toggle("active",!!persistMode);
-  // per-type button config (blob v9): 4 types x 7 bytes from p[75]
-  if(p.length>=75+TYPE_DEFS.length*7){
+  // per-type button config (blob v9): 4 types x 7 bytes. readBlob() strips the 2-byte [0xA5][len] header, so
+  // the firmware's payload byte 75 lands at JS index 73 here.
+  if(p.length>=73+TYPE_DEFS.length*7){
     const activeEt=etypeForMode(mode);
     typeEls.forEach((rec,et)=>{
-      const q=75+et*7;
+      const q=73+et*7;
       const back=[p[q],p[q+1],p[q+2],p[q+3]], qam=p[q+4], ab=p[q+5], pad=p[q+6];
       rec.back.forEach((sel,i)=>{ if(document.activeElement!==sel) sel.value=back[i]; });
       if(document.activeElement!==rec.qam) rec.qam.value=qam;
