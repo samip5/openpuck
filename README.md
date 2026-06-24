@@ -66,9 +66,13 @@ A webusb based configuration UI is available [here](https://safijari.github.io/o
 - [StonnedModder](https://www.printables.com/model/1760684-openpuck-promicro-nrf52840-case) built a case meant to accomodate a USB C to USB A adapter which you can find [here](https://www.printables.com/model/1760684-openpuck-promicro-nrf52840-case).
 - Another plain case for these pro micros can be found [here](https://www.printables.com/model/1285346-pro-micro-nicenano-nrf52840-dongle-case/collections).
 
+# ReversePuck
+This is a tool to emulate a Steam Controller 2 with almost all of its inputs (except grip) using a Steam Deck and allow it to connect over a low latency 2.4ghz connection to OpenPuck (this does not work with the official puck). Flash the firmware onto an NRF52840 Pro Micro and copy over the ReversePuck folder onto the Steam Deck (you'll need to install UV). Then add the ReversePuck script as a non steam game. Attach both the dongle and OpenPuck to the same machine and do pairing through Steam (which will say pairing has failed but it's actually fine). Then connect the OpenPuck to whatever machine you want to use your controllers on and the dongle to the Steam Deck. Launch the ReversePuck app in gamemode and you'll see the serial number of the OpenPuck show up in green. Press it and it'll turn blue at which point the Deck will show up as a controller on the host device. See video below for a demonstration of this in action (yes, other Steam Controllers can be connected to the same OpenPuck at the same time).
+
+[![ReversePuck Demo](https://img.youtube.com/vi/gSaqO9oqq9s/0.jpg)](https://www.youtube.com/watch?v=gSaqO9oqq9s)
+
 # Future work
 - Find a way to make Xinput mode and mouse work together on all platforms
-- Multi-controller support is now working in Steam/Lizard mode (up to 4 controllers, see the `U` CDC command for a per-slot status dump). Non-puck modes (Xbox, Switch, PS5, DS4) remain single-controller by design — the user can pair one controller and use the appropriate mode.
 - Design the charging portion (and make it short proof)
 
 # Contributions

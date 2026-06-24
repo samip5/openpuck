@@ -51,6 +51,20 @@ jobs:
       - name: Generate UF2 (standard)
         run: ./gen_uf2.sh build/openpuck/OpenPuck.ino.hex build/openpuck/OpenPuck.ino.uf2
 
+      - name: Compile ReversePuckFirmware
+        run: |
+          mkdir -p build/reversepuck build/cache/reversepuck
+          arduino-cli compile \
+            -b adafruit:nrf52:feather52840 \
+            --clean \
+            --build-path build/cache/reversepuck \
+            --output-dir build/reversepuck \
+            --build-property "build.extra_flags=-DNRF52840_XXAA {build.flags.usb}" \
+            ReversePuckFirmware
+
+      - name: Generate UF2 (ReversePuckFirmware)
+        run: ./gen_uf2.sh build/reversepuck/ReversePuckFirmware.ino.hex build/reversepuck/ReversePuckFirmware.ino.uf2
+
       - name: Compile recovery build
         run: |
           mkdir -p build/openpuck-recovery build/cache/openpuck-recovery
@@ -88,6 +102,14 @@ jobs:
             fi
             cp "$f" "release_assets/OpenPuck-${VERSION}-${flavor}.${ext}"
           done
+
+          find build/reversepuck \
+            -maxdepth 1 -type f \
+            \( -name '*.uf2' -o -name '*.zip' \) \
+            -print | while read -r f; do
+            ext="${f##*.}"
+            cp "$f" "release_assets/ReversePuckFirmware-${VERSION}.${ext}"
+          done
           test -n "$(find release_assets -maxdepth 1 -type f -print -quit)"
           ls -la release_assets
 
@@ -107,6 +129,9 @@ jobs:
 
             ### Files included:
 
+            - `OpenPuck-*-standard.*` — puck firmware (standard)
+            - `OpenPuck-*-factory-reset.*` — puck firmware (factory reset)
+            - `ReversePuckFirmware-*.*` — reverse-puck firmware (controller emulator)
             - `.zip` files for Adafruit DFU tool
             - `.uf2` files for drag-and-drop flashing (BOOT/UF2 drive)
         env:

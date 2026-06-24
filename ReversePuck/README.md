@@ -44,7 +44,8 @@ analog offsets in `input_source.py` if anything's off. The IMU axis remap (`IMU_
 
 The `ReversePuck` launcher runs the app via [`uv`](https://docs.astral.sh/uv/), which provisions its own
 Python and the three deps (`pyserial` + `pygame` + `pyusb`, all prebuilt wheels; `pyusb` uses the system
-`libusb-1.0.so`) into uv's cache — **nothing touches the read-only rootfs**.
+`libusb-1.0.so`) into uv's cache — **nothing touches the read-only rootfs**. You might need to install this
+before ReversePuck will function.
 
 ```bash
 # one-time: install uv (lands in ~/.local/bin, no root)
